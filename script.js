@@ -14,16 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.gallery .fade-in').forEach((el) => observer.observe(el));
 
-  document.querySelectorAll('.yt-facade').forEach((el) => {
+  document.querySelectorAll('.video-facade').forEach((el) => {
     el.addEventListener('click', () => {
-      const id = el.dataset.id;
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1`;
-      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      iframe.allowFullscreen = true;
+      const src = el.dataset.src;
+      const video = document.createElement('video');
+      video.src = src;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
       el.innerHTML = '';
-      el.appendChild(iframe);
-      el.classList.remove('yt-facade');
+      el.appendChild(video);
+      el.classList.remove('video-facade');
     });
   });
 });

@@ -163,19 +163,19 @@ a { color: inherit; text-decoration: none; }
   aspect-ratio: 9 / 16;
 }
 
-.gallery-item.yt-facade {
+.gallery-item.video-facade {
   position: relative;
   cursor: pointer;
 }
 
-.yt-thumb {
+.v-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.yt-play {
+.v-play {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -193,7 +193,7 @@ a { color: inherit; text-decoration: none; }
   transition: transform 0.25s ease, background 0.25s ease;
 }
 
-.gallery-item.yt-facade:hover .yt-play {
+.gallery-item.video-facade:hover .v-play {
   transform: translate(-50%, -50%) scale(1.08);
   background: #fff;
 }
