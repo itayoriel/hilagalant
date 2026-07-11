@@ -1,0 +1,251 @@
+:root {
+  --cream: #F7F2E9;
+  --sky: #B7D6DC;
+  --caramel: #A9683C;
+  --ink: #2B2721;
+  --ink-soft: rgba(43, 39, 33, 0.65);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  scroll-behavior: smooth;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* nav */
+.site-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28px 6vw;
+  mix-blend-mode: difference;
+}
+
+.site-nav .logo {
+  font-size: 15px;
+  letter-spacing: 0.15em;
+  color: #fff;
+}
+
+.site-nav nav a {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0.85;
+}
+
+.site-nav nav a:hover,
+.site-nav nav a.active {
+  opacity: 1;
+  border-bottom: 1px solid currentColor;
+}
+
+/* hero */
+.hero {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--caramel);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(43,39,33,0.25) 0%, rgba(43,39,33,0.35) 100%);
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #fff;
+}
+
+.hero-text h1 {
+  margin: 0;
+  font-size: clamp(32px, 6vw, 64px);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+}
+
+.hero-text .role {
+  margin: 6px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+}
+
+.hero-text .tagline {
+  margin-top: 22px;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--sky);
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 1px;
+  height: 40px;
+  background: rgba(255,255,255,0.4);
+  overflow: hidden;
+}
+
+.scroll-hint span {
+  display: block;
+  width: 100%;
+  height: 40%;
+  background: #fff;
+  animation: scrollDown 1.8s ease-in-out infinite;
+}
+
+@keyframes scrollDown {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(250%); }
+}
+
+/* gallery */
+.gallery {
+  padding: 10vh 6vw;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6vh 3.5vw;
+}
+
+.gallery-item {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--sky);
+}
+
+.gallery-item video,
+.gallery-item iframe {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border: 0;
+}
+
+.gallery-item.portrait {
+  aspect-ratio: 9 / 16;
+}
+
+@media (max-width: 640px) {
+  .gallery {
+    grid-template-columns: 1fr;
+    gap: 6vh;
+  }
+  .gallery-item.portrait {
+    grid-column: 1 / -1;
+  }
+}
+
+/* fade-in on scroll */
+.fade-in {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 1.1s ease, transform 1.1s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* fade-in on load */
+.fade-in-load {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 1.3s ease, transform 1.3s ease;
+}
+
+.fade-in-load.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* contact page */
+.contact-page .hero,
+.contact-page .gallery { display: none; }
+
+.contact {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  text-align: center;
+  padding: 6vw;
+}
+
+.contact h2 {
+  font-weight: 400;
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+}
+
+.insta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border: 1px solid var(--caramel);
+  border-radius: 999px;
+  color: var(--caramel);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.insta-btn:hover {
+  background: var(--caramel);
+  color: var(--cream);
+}
+
+.contact-line a {
+  font-size: 16px;
+  color: var(--ink-soft);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+
+.contact-line a:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
