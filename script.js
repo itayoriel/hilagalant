@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { threshold: 0.15 });
 
-  document.querySelectorAll('.gallery .fade-in, .stills .fade-in').forEach((el) => observer.observe(el));
+  document.querySelectorAll('.gallery .fade-in, .stills .fade-in, .about.fade-in').forEach((el) => observer.observe(el));
 
   document.querySelectorAll('.video-facade').forEach((el) => {
     el.addEventListener('click', () => {
