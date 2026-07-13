@@ -143,7 +143,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .video-title {
-  text-align: left;
+  text-align: center;
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.1em;
