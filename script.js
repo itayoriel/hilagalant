@@ -18,15 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('click', () => {
       const src = el.dataset.src;
       const video = document.createElement('video');
-      video.src = src;
       video.controls = true;
-      video.autoplay = true;
       video.loop = true;
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
+      const source = document.createElement('source');
+      source.src = src;
+      source.type = 'video/mp4';
+      video.appendChild(source);
       el.innerHTML = '';
       el.appendChild(video);
       el.classList.remove('video-facade');
+      video.play().catch(() => {});
     });
   });
 });
