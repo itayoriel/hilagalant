@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { threshold: 0.15 });
 
-  document.querySelectorAll('.gallery .fade-in').forEach((el) => observer.observe(el));
+  document.querySelectorAll('.gallery .fade-in, .stills .fade-in').forEach((el) => observer.observe(el));
 
   document.querySelectorAll('.video-facade').forEach((el) => {
     el.addEventListener('click', () => {
@@ -32,4 +32,28 @@ document.addEventListener('DOMContentLoaded', () => {
       video.play().catch(() => {});
     });
   });
+
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  if (lightbox && lightboxImg) {
+    document.querySelectorAll('.still').forEach((img) => {
+      img.addEventListener('click', () => {
+        lightboxImg.src = img.src;
+        lightbox.classList.add('open');
+      });
+    });
+
+    const closeLightbox = () => {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+    };
+
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox || e.target.closest('.lightbox-close')) closeLightbox();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  }
 });
