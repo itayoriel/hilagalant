@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
       video.src = src;
       video.controls = true;
       video.autoplay = true;
-      video.playsInline = true;
+      video.loop = true;
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
       el.innerHTML = '';
       el.appendChild(video);
       el.classList.remove('video-facade');

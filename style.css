@@ -171,6 +171,8 @@ a { color: inherit; text-decoration: none; }
 
 .gallery-item.portrait {
   aspect-ratio: 9 / 16;
+  max-width: 230px;
+  margin: 0 auto;
 }
 
 .gallery-item.video-facade {
