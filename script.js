@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const src = el.dataset.src;
       const video = document.createElement('video');
       video.controls = true;
-      video.loop = true;
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
       const source = document.createElement('source');
