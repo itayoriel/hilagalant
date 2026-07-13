@@ -175,6 +175,15 @@ a { color: inherit; text-decoration: none; }
   margin: 0 auto;
 }
 
+.gallery-entry.full-row {
+  grid-column: 1 / -1;
+}
+
+.gallery-entry.full-row .gallery-item {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 .gallery-item.video-facade {
   position: relative;
   cursor: pointer;
