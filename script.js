@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.video-facade').forEach((el) => {
     el.addEventListener('click', () => {
+      if (!el.classList.contains('video-facade')) return;
       const src = el.dataset.src;
       const video = document.createElement('video');
       video.controls = true;
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
       el.appendChild(video);
       el.classList.remove('video-facade');
       video.play().catch(() => {});
-    });
+    }, { once: true });
   });
 
   const lightbox = document.getElementById('lightbox');
