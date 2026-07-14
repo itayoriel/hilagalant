@@ -39,32 +39,42 @@ document.addEventListener('DOMContentLoaded', () => {
       .map((link) => document.querySelector(link.getAttribute('href')))
       .filter(Boolean);
 
-    const updateActiveNav = () => {
-      const line = window.innerHeight * 0.45;
-      let current = null;
-      sections.forEach((section) => {
-        if (section.getBoundingClientRect().top <= line) current = section;
-      });
+    const setActive = (id) => {
       navLinks.forEach((link) => {
-        link.classList.toggle('active', !!current && link.getAttribute('href') === `#${current.id}`);
+        link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
       });
     };
 
-    window.addEventListener('scroll', updateActiveNav, { passive: true });
-    updateActiveNav();
+    const spyObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) setActive(entry.target.id);
+      });
+    }, { rootMargin: '0px 0px -70% 0px', threshold: 0 });
+
+    sections.forEach((section) => spyObserver.observe(section));
   }
 
-  const portraitItems = document.querySelectorAll('.gallery-item.portrait');
-  const pauseOffscreenShorts = () => {
-    portraitItems.forEach((el) => {
-      const vid = el.querySelector('video');
-      if (!vid || vid.paused) return;
-      const rect = el.getBoundingClientRect();
-      const fullyOffscreen = rect.bottom <= 0 || rect.top >= window.innerHeight;
-      if (fullyOffscreen) vid.pause();
+  const siteNav = document.querySelector('.site-nav');
+  const hero = document.querySelector('.hero');
+  if (siteNav && hero) {
+    const navScrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        siteNav.classList.toggle('solid', !entry.isIntersecting);
+      });
+    }, { rootMargin: `-${siteNav.offsetHeight}px 0px 0px 0px`, threshold: 0 });
+    navScrollObserver.observe(hero);
+  }
+
+  const portraitVideoObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) {
+        const vid = entry.target.querySelector('video');
+        if (vid && !vid.paused) vid.pause();
+      }
     });
-  };
-  window.addEventListener('scroll', pauseOffscreenShorts, { passive: true });
+  }, { threshold: 0 });
+
+  document.querySelectorAll('.gallery-item.portrait').forEach((el) => portraitVideoObserver.observe(el));
 
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
