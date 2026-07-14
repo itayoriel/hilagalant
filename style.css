@@ -117,7 +117,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .hero-text .tagline {
-  margin-top: 22px;
+  margin-top: 38px;
   font-size: 18px;
   font-weight: 500;
   font-style: italic;
@@ -149,12 +149,27 @@ a { color: inherit; text-decoration: none; }
   100% { transform: translateY(250%); }
 }
 
+/* section titles */
+.section-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--caramel);
+  margin: 0 0 6vh;
+}
+
 /* gallery */
 .gallery {
   padding: 10vh 6vw;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6vh 3.5vw;
+}
+
+.gallery .section-title {
+  grid-column: 1 / -1;
 }
 
 .video-title {
@@ -304,9 +319,10 @@ a { color: inherit; text-decoration: none; }
 
 /* about */
 .about {
-  padding: 8vh 6vw 14vh;
+  padding: 12vh 6vw 10vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 .about-text {
