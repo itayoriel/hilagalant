@@ -1,0 +1,51 @@
+name: Remove media
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "assets/gallery/**"
+      - "assets/stills/**"
+
+permissions:
+  contents: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Find deleted media files
+        id: deleted
+        run: |
+          DELETED=$(git diff --name-status --diff-filter=D ${{ github.event.before }} ${{ github.sha }} -- assets/gallery assets/stills | cut -f2)
+          echo "$DELETED" > deleted_files.txt
+          cat deleted_files.txt
+
+      - name: Remove matching entries
+        run: |
+          if [ -s deleted_files.txt ]; then
+            python scripts/process_removed.py < deleted_files.txt
+          else
+            echo "No deleted media files in this push."
+          fi
+
+      - name: Commit changes
+        run: |
+          git config user.name "hila-galant-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html assets/gallery assets/stills
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Remove media entries for deleted files"
+            git push
+          fi
