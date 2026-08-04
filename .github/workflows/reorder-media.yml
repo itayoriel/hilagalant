@@ -1,17 +1,17 @@
-name: Add media
+name: Reorder media
 
 on:
   push:
     branches: [main]
     paths:
-      - "assets/incoming/gallery/**"
-      - "assets/incoming/stills/**"
+      - "order/videos.txt"
+      - "order/stills.txt"
 
 permissions:
   contents: write
 
 jobs:
-  process:
+  rebuild:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,17 +26,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Process incoming media
-        run: python scripts/process_incoming.py
+      - name: Rebuild index.html from order files
+        run: python -c "import sys; sys.path.insert(0, 'scripts'); import gallery_lib; gallery_lib.rebuild_index_html()"
 
       - name: Commit changes
         run: |
           git config user.name "hila-galant-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html order assets/gallery assets/stills assets/incoming
+          git add index.html
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Add new media from incoming folder"
+            git commit -m "Reorder media per order files"
             git push
           fi
