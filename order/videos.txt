@@ -3,7 +3,7 @@ mey
 nails
 mantrot
 color-grading
-green,full-row
+green
 pilates
 shell
 icy-gold
