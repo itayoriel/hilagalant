@@ -24,5 +24,9 @@
     "retreat": "Retreat",
     "pie": "Pie",
     "my-room": "My Room"
-  }
+  },
+  "covers": {
+    "my-room": 17.77
+  },
+  "styles": {}
 }
