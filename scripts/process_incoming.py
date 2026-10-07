@@ -51,11 +51,7 @@ def process_videos():
             ["ffmpeg", "-y", "-i", str(src), *VIDEO_ENCODE_ARGS, str(out_mp4)],
             check=True,
         )
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", str(out_mp4), "-ss", "00:00:01",
-             "-vframes", "1", "-vf", "scale=480:-2", str(out_jpg)],
-            check=True,
-        )
+        lib.make_poster(out_mp4, out_jpg)
 
         src.unlink()
         lib.append_to_order(lib.VIDEOS_ORDER, slug)

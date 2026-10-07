@@ -52,6 +52,46 @@ def ffprobe_is_portrait(mp4_path):
     return stream["height"] > stream["width"]
 
 
+def ffprobe_duration(path):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", str(path)],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return float(json.loads(out)["format"].get("duration") or 0)
+
+
+def image_brightness(path):
+    out = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"],
+        capture_output=True, text=True,
+    ).stdout
+    m = re.search(r"lavfi\.signalstats\.YAVG=([\d.]+)", out)
+    return float(m.group(1)) if m else 0.0
+
+
+def make_poster(mp4_path, jpg_path, min_brightness=40):
+    """Pick a cover frame that isn't black (clips often open with a fade from black)."""
+    duration = ffprobe_duration(mp4_path)
+    best = None
+    for fraction in (0.2, 0.35, 0.5, 0.65):
+        candidate = jpg_path.with_name(f"{jpg_path.stem}.cand{int(fraction * 100)}.jpg")
+        subprocess.run(
+            ["ffmpeg", "-y", "-v", "error", "-ss", f"{duration * fraction:.2f}", "-i", str(mp4_path),
+             "-vf", "thumbnail=45,scale=480:-2", "-frames:v", "1", "-update", "1", str(candidate)],
+            check=True,
+        )
+        brightness = image_brightness(candidate)
+        if best is None or brightness > best[0]:
+            if best:
+                best[1].unlink(missing_ok=True)
+            best = (brightness, candidate)
+        else:
+            candidate.unlink(missing_ok=True)
+        if brightness >= min_brightness:
+            break
+    best[1].replace(jpg_path)
+
+
 def read_order(path):
     if not path.exists():
         return []
