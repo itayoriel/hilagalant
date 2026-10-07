@@ -362,9 +362,14 @@ async function uploadVideos(videos, totalBytes) {
   }
   setStatus('Sending videos for processing…', 1);
   const ref = await gh(`/git/ref/heads/${BRANCH}`);
+  const head = await gh(`/git/commits/${ref.object.sha}`);
+  // Built on main's tree: GitHub only runs workflows present in the pushed branch itself.
   const tree = await gh('/git/trees', {
     method: 'POST',
-    body: JSON.stringify({ tree: parts.map(({ path, sha }) => ({ path, mode: '100644', type: 'blob', sha })) }),
+    body: JSON.stringify({
+      base_tree: head.tree.sha,
+      tree: parts.map(({ path, sha }) => ({ path, mode: '100644', type: 'blob', sha })),
+    }),
   });
   const commit = await gh('/git/commits', {
     method: 'POST',
