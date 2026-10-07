@@ -9,4 +9,3 @@ shell
 icy-gold
 retreat
 pie
-pipeline-test
