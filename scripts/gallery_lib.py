@@ -1,12 +1,13 @@
-"""Shared helpers for building index.html's video/still sections from
-order/videos.txt and order/stills.txt. Both process_incoming.py and
-process_removed.py call rebuild_index_html() after they touch the order
-files, so index.html always reflects whatever order those two text files
-list, regardless of file names."""
+"""Shared helpers for building index.html from the data files:
+order/videos.txt, order/stills.txt (display order) and content/site.json
+(hero text, about text, custom video titles). Everything between the
+<!-- X:START --> / <!-- X:END --> markers in index.html is generated."""
 
+import html as html_lib
 import json
 import re
 import subprocess
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -16,17 +17,28 @@ STILLS_DIR = ROOT / "assets" / "stills"
 ORDER_DIR = ROOT / "order"
 VIDEOS_ORDER = ORDER_DIR / "videos.txt"
 STILLS_ORDER = ORDER_DIR / "stills.txt"
+SITE_JSON = ROOT / "content" / "site.json"
+
+PLAY_BUTTON = (
+    '<button class="v-play" aria-label="Play video"><svg viewBox="0 0 24 24" '
+    'width="20" height="20"><polygon points="6,4 20,12 6,20" fill="currentColor"/></svg></button>'
+)
 
 
 def slugify(stem):
     s = re.sub(r"[_\s]+", "-", stem.strip().lower())
     s = re.sub(r"[^a-z0-9\-]", "", s)
-    return re.sub(r"-+", "-", s).strip("-")
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s or f"item-{int(time.time() * 1000)}"
 
 
 def titleize(stem):
     words = re.split(r"[_\-\s]+", stem.strip())
     return " ".join(w.capitalize() for w in words if w)
+
+
+def esc(text):
+    return html_lib.escape(text, quote=False)
 
 
 def ffprobe_is_portrait(mp4_path):
@@ -43,12 +55,7 @@ def ffprobe_is_portrait(mp4_path):
 def read_order(path):
     if not path.exists():
         return []
-    lines = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line:
-            lines.append(line)
-    return lines
+    return [l.strip() for l in path.read_text(encoding="utf-8-sig").splitlines() if l.strip()]
 
 
 def write_order(path, lines):
@@ -56,10 +63,15 @@ def write_order(path, lines):
     path.write_text("\n".join(lines) + "\n" if lines else "", encoding="utf-8")
 
 
+def order_key(line):
+    return line.split(",")[0].strip()
+
+
 def append_to_order(path, entry):
     lines = read_order(path)
-    lines.append(entry)
-    write_order(path, lines)
+    if order_key(entry) not in {order_key(l) for l in lines}:
+        lines.append(entry)
+        write_order(path, lines)
 
 
 def remove_from_order(path, predicate):
@@ -69,62 +81,83 @@ def remove_from_order(path, predicate):
     return len(kept) != len(lines)
 
 
-def build_video_block(order_line):
+def load_site():
+    if not SITE_JSON.exists():
+        return {}
+    return json.loads(SITE_JSON.read_text(encoding="utf-8-sig"))
+
+
+def build_video_block(order_line, titles):
     parts = order_line.split(",")
     slug = parts[0].strip()
-    modifiers = [p.strip() for p in parts[1:]]
+    modifiers = [p.strip() for p in parts[1:] if p.strip()]
 
     mp4_path = GALLERY_DIR / f"{slug}.mp4"
     if not mp4_path.exists():
         return None
 
-    title = titleize(slug)
+    title = titles.get(slug) or titleize(slug)
     portrait = ffprobe_is_portrait(mp4_path)
 
-    entry_classes = "gallery-entry" + ("".join(f" {m}" for m in modifiers))
+    entry_classes = "gallery-entry" + "".join(f" {m}" for m in modifiers)
     item_classes = "gallery-item" + (" portrait" if portrait else "") + " fade-in video-facade"
 
     return (
         f'  <div class="{entry_classes}">\n'
-        f'    <p class="video-title">{title}</p>\n'
+        f'    <p class="video-title">{esc(title)}</p>\n'
         f'    <div class="{item_classes}" data-src="assets/gallery/{slug}.mp4">\n'
         f'      <img class="v-thumb" src="assets/gallery/{slug}.jpg" alt="" loading="lazy">\n'
-        '      <button class="v-play" aria-label="Play video"><svg viewBox="0 0 24 24" width="20" height="20"><polygon points="6,4 20,12 6,20" fill="currentColor"/></svg></button>\n'
+        f"      {PLAY_BUTTON}\n"
         "    </div>\n"
         "  </div>"
     )
 
 
 def build_still_block(name):
-    path = STILLS_DIR / name
-    if not path.exists():
+    if not (STILLS_DIR / name).exists():
         return None
     return f'    <img class="still fade-in" src="assets/stills/{name}" alt="" loading="lazy">'
 
 
-def replace_between_markers(html, start_marker, end_marker, new_content):
+def build_hero_block(site):
+    lines = [f'    <p class="role">{esc(r)}</p>' for r in site.get("roles", [])]
+    if site.get("tagline"):
+        lines.append(f'    <p class="tagline">{esc(site["tagline"])}</p>')
+    return "\n".join(lines)
+
+
+def build_about_block(site):
+    about = [esc(l) for l in site.get("about", []) if l.strip()]
+    if not about:
+        return ""
+    return '  <p class="about-text" dir="rtl" lang="he">' + "<br>\n    ".join(about) + "</p>"
+
+
+def replace_between_markers(html, name, new_content):
     pattern = re.compile(
-        re.escape(start_marker) + r".*?" + re.escape(end_marker), re.DOTALL
+        rf"(<!-- {name}:START -->).*?\n([ \t]*)(<!-- {name}:END -->)", re.DOTALL
     )
-    if not pattern.search(html):
-        raise RuntimeError(f"Could not find markers {start_marker} / {end_marker} in index.html")
-    replacement = f"{start_marker}\n{new_content}\n  {end_marker}"
-    return pattern.sub(replacement, html, count=1)
+    m = pattern.search(html)
+    if not m:
+        raise RuntimeError(f"Could not find {name} markers in index.html")
+    body = f"\n{new_content}" if new_content else ""
+    replacement = f"{m.group(1)}{body}\n{m.group(2)}{m.group(3)}"
+    return html[:m.start()] + replacement + html[m.end():]
 
 
 def rebuild_index_html():
     html = INDEX_HTML.read_text(encoding="utf-8")
+    site = load_site()
+    titles = site.get("titles", {})
 
-    video_lines = read_order(VIDEOS_ORDER)
-    video_blocks = [b for b in (build_video_block(l) for l in video_lines) if b]
-    html = replace_between_markers(
-        html, "<!-- VIDEOS:START -->", "<!-- VIDEOS:END -->", "\n".join(video_blocks)
-    )
+    videos = [b for b in (build_video_block(l, titles) for l in read_order(VIDEOS_ORDER)) if b]
+    html = replace_between_markers(html, "VIDEOS", "\n".join(videos))
 
-    still_lines = read_order(STILLS_ORDER)
-    still_blocks = [b for b in (build_still_block(n) for n in still_lines) if b]
-    html = replace_between_markers(
-        html, "<!-- STILLS:START -->", "<!-- STILLS:END -->", "\n".join(still_blocks)
-    )
+    stills = [b for b in (build_still_block(n) for n in read_order(STILLS_ORDER)) if b]
+    html = replace_between_markers(html, "STILLS", "\n".join(stills))
+
+    if site:
+        html = replace_between_markers(html, "HERO", build_hero_block(site))
+        html = replace_between_markers(html, "ABOUT", build_about_block(site))
 
     INDEX_HTML.write_text(html, encoding="utf-8")

@@ -1,0 +1,152 @@
+.ed-body { padding-top: 56px; }
+
+.ed-toolbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 4vw;
+  background: var(--cream);
+  box-shadow: 0 1px 0 rgba(43, 39, 33, 0.12);
+  font-size: 13px;
+}
+
+.ed-brand {
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--caramel);
+  white-space: nowrap;
+}
+
+.ed-status {
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.ed-progress {
+  width: 120px;
+  height: 3px;
+  background: rgba(43, 39, 33, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ed-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--caramel);
+  transition: width 0.2s ease;
+}
+
+.ed-actions { margin-left: auto; display: flex; gap: 10px; flex-shrink: 0; }
+
+.ed-btn {
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--caramel);
+  background: transparent;
+  color: var(--caramel);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+.ed-btn:hover { background: var(--caramel); color: var(--cream); }
+.ed-btn-primary { background: var(--caramel); color: var(--cream); }
+.ed-btn-primary:hover { background: var(--ink); border-color: var(--ink); }
+.ed-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+.ed-editable { outline: 1px dashed transparent; outline-offset: 6px; border-radius: 2px; cursor: text; transition: outline-color 0.2s ease; }
+.ed-editable:hover { outline-color: rgba(169, 104, 60, 0.6); }
+.ed-editable:focus { outline: 1px solid var(--caramel); }
+.hero .ed-editable:hover, .hero .ed-editable:focus { outline-color: rgba(255, 255, 255, 0.7); }
+
+.ed-entry { cursor: grab; }
+.ed-entry .gallery-item, .ed-still { position: relative; }
+.ed-entry.sortable-chosen, .ed-still.sortable-chosen { cursor: grabbing; }
+.sortable-ghost { opacity: 0.35; }
+
+.ed-remove {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 3;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(247, 242, 233, 0.92);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ed-remove:hover { background: #fff; color: var(--caramel); }
+
+.ed-badge {
+  position: absolute;
+  top: 10px; left: 10px;
+  z-index: 3;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--caramel);
+  color: var(--cream);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ed-removed .gallery-item > :not(.ed-remove),
+.ed-removed .video-title,
+.ed-still.ed-removed .still { opacity: 0.25; filter: grayscale(1); }
+
+.ed-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.ed-still .still { max-width: none; margin: 0; grid-column: auto; }
+
+.ed-add-row { display: flex; justify-content: center; padding: 0 6vw 4vh; }
+
+.ed-hint {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 2vh 6vw 10vh;
+  margin: 0;
+}
+
+.ed-login {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+  padding: 6vw;
+}
+.ed-login-card { max-width: 360px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 14px; }
+.ed-login-card h2 { font-weight: 400; letter-spacing: 0.08em; margin: 0; }
+.ed-login-card p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+.ed-login-card input {
+  font: inherit;
+  padding: 12px 16px;
+  border: 1px solid rgba(43, 39, 33, 0.2);
+  border-radius: 999px;
+  background: #fff;
+  text-align: center;
+}
+.ed-login-error { color: #a33 !important; min-height: 1.2em; }
+
+@media (max-width: 640px) {
+  .ed-toolbar { gap: 10px; padding: 0 16px; }
+  .ed-brand, .ed-progress { display: none; }
+  .ed-btn { padding: 8px 14px; }
+}

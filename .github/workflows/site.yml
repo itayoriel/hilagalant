@@ -1,0 +1,60 @@
+name: Update site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "assets/incoming/**"
+      - "assets/gallery/**"
+      - "assets/stills/**"
+      - "order/**"
+      - "content/**"
+
+concurrency:
+  group: site-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compress new uploads
+        run: python scripts/process_incoming.py
+
+      - name: Clean up deleted media
+        run: |
+          git diff --name-only --diff-filter=D ${{ github.event.before }} ${{ github.sha }} -- assets/gallery assets/stills > deleted_files.txt || true
+          if [ -s deleted_files.txt ]; then
+            python scripts/process_removed.py < deleted_files.txt
+          fi
+          rm -f deleted_files.txt
+
+      - name: Rebuild page
+        run: python -c "import sys; sys.path.insert(0, 'scripts'); import gallery_lib; gallery_lib.rebuild_index_html()"
+
+      - name: Commit changes
+        run: |
+          git config user.name "hila-galant-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A index.html order content assets
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Update site"
+            git pull --rebase origin main
+            git push
+          fi

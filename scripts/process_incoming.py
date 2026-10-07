@@ -62,24 +62,22 @@ def process_videos():
         print(f"Added video: {src.name} -> {slug}")
 
 
-def next_still_number():
-    existing = sorted(lib.STILLS_DIR.glob("still-*.jpg"))
-    nums = []
-    for p in existing:
-        m = re.match(r"still-(\d+)\.jpg", p.name)
-        if m:
-            nums.append(int(m.group(1)))
-    return (max(nums) + 1) if nums else 1
+def unique_still_name(base):
+    name = f"{base}.jpg"
+    i = 2
+    while (lib.STILLS_DIR / name).exists():
+        name = f"{base}-{i}.jpg"
+        i += 1
+    return name
 
 
 def process_stills():
     if not STILLS_INCOMING.exists():
         return
-    n = next_still_number()
     for src in sorted(STILLS_INCOMING.iterdir()):
         if src.suffix.lower() not in IMAGE_EXTS:
             continue
-        name = f"still-{n:02d}.jpg"
+        name = unique_still_name(lib.slugify(src.stem))
         out_jpg = lib.STILLS_DIR / name
 
         subprocess.run(
@@ -92,7 +90,6 @@ def process_stills():
         src.unlink()
         lib.append_to_order(lib.STILLS_ORDER, name)
         print(f"Added still: {src.name} -> {name}")
-        n += 1
 
 
 def main():

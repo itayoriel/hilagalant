@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Edit — Hila Galant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Heebo:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/edit/editor.css">
+</head>
+<body class="ed-body">
+
+<div class="ed-toolbar">
+  <span class="ed-brand">Edit mode</span>
+  <span class="ed-status" id="ed-status"></span>
+  <div class="ed-progress" id="ed-progress" hidden><span></span></div>
+  <div class="ed-actions">
+    <a class="ed-btn ed-btn-ghost" href="/" target="_blank" rel="noopener">View site</a>
+    <button class="ed-btn ed-btn-primary" id="ed-save" disabled>Save</button>
+  </div>
+</div>
+
+<main id="ed-page" hidden>
+  <section class="hero">
+    <video class="hero-video" autoplay muted loop playsinline poster="/assets/poster.jpg">
+      <source src="/assets/hero.mp4" type="video/mp4">
+    </video>
+    <div class="hero-overlay"></div>
+    <div class="hero-text">
+      <h1>HILA GALANT</h1>
+      <div class="hero-divider"></div>
+      <div id="ed-roles"></div>
+      <p class="tagline ed-editable ed-single" id="ed-tagline" contenteditable="true" spellcheck="false"></p>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <h2 class="section-title">About Me</h2>
+    <p class="about-text ed-editable" id="ed-about" dir="rtl" lang="he" contenteditable="true" spellcheck="false"></p>
+  </section>
+
+  <section class="gallery" id="ed-videos">
+    <h2 class="section-title">Videos</h2>
+  </section>
+  <div class="ed-add-row">
+    <label class="ed-btn ed-btn-ghost">+ Add video<input type="file" id="ed-add-video" accept="video/*" multiple hidden></label>
+  </div>
+
+  <section class="stills" id="stills">
+    <h2 class="section-title">Stills</h2>
+    <div class="stills-grid" id="ed-stills"></div>
+  </section>
+  <div class="ed-add-row">
+    <label class="ed-btn ed-btn-ghost">+ Add photos<input type="file" id="ed-add-photo" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+  </div>
+
+  <p class="ed-hint">Click any text to change it · Drag videos and photos to reorder · ✕ removes, ↺ brings it back · Nothing changes on the site until you press Save</p>
+</main>
+
+<div class="ed-login" id="ed-login" hidden>
+  <form class="ed-login-card" id="ed-login-form">
+    <h2>Edit mode</h2>
+    <p>Paste your access key to start editing. You only need to do this once on this device.</p>
+    <input type="password" id="ed-token" placeholder="Access key" autocomplete="off" required>
+    <p class="ed-login-error" id="ed-login-error"></p>
+    <button class="ed-btn ed-btn-primary" type="submit">Continue</button>
+  </form>
+</div>
+
+<script src="/edit/vendor/Sortable.min.js"></script>
+<script src="/edit/editor.js"></script>
+</body>
+</html>
