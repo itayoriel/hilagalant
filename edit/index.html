@@ -18,6 +18,7 @@
   <span class="ed-status" id="ed-status"></span>
   <div class="ed-progress" id="ed-progress" hidden><span></span></div>
   <div class="ed-actions">
+    <button class="ed-btn ed-btn-ghost" id="ed-style-toggle" type="button">Text style</button>
     <a class="ed-btn ed-btn-ghost" href="/" target="_blank" rel="noopener">View site</a>
     <button class="ed-btn ed-btn-primary" id="ed-save" disabled>Save</button>
   </div>
@@ -30,7 +31,7 @@
     </video>
     <div class="hero-overlay"></div>
     <div class="hero-text">
-      <h1>HILA GALANT</h1>
+      <h1 class="ed-stylable">HILA GALANT</h1>
       <div class="hero-divider"></div>
       <div id="ed-roles"></div>
       <p class="tagline ed-editable ed-single" id="ed-tagline" contenteditable="true" spellcheck="false"></p>
@@ -59,6 +60,39 @@
 
   <p class="ed-hint">Click any text to change it · Drag videos and photos to reorder · ✕ removes, ↺ brings it back · Nothing changes on the site until you press Save</p>
 </main>
+
+<aside class="ed-panel" id="ed-panel" hidden>
+  <div class="ed-panel-head">
+    <span>Text style</span>
+    <button type="button" class="ed-panel-close" id="ed-panel-close" aria-label="Close">✕</button>
+  </div>
+  <label class="ed-field">Text
+    <select id="ed-st-target"></select>
+  </label>
+  <label class="ed-field">Font
+    <select id="ed-st-font"><option value="">Original</option></select>
+  </label>
+  <label class="ed-field">Size <span id="ed-st-size-val"></span>
+    <input type="range" id="ed-st-size" min="10" max="120" step="1">
+  </label>
+  <label class="ed-field">Color
+    <input type="color" id="ed-st-color">
+  </label>
+  <button type="button" class="ed-btn ed-btn-ghost" id="ed-st-reset">Back to original</button>
+  <p class="ed-panel-hint">Tip: with this open, click any text on the page to pick it.</p>
+</aside>
+
+<div class="ed-modal" id="ed-cover" hidden>
+  <div class="ed-modal-card">
+    <p class="ed-modal-title">Choose the cover</p>
+    <video id="ed-cover-video" controls playsinline muted preload="auto"></video>
+    <p class="ed-modal-hint" id="ed-cover-hint">Play or drag to the moment you want, then press "Use this frame".</p>
+    <div class="ed-modal-actions">
+      <button type="button" class="ed-btn ed-btn-ghost" id="ed-cover-cancel">Cancel</button>
+      <button type="button" class="ed-btn ed-btn-primary" id="ed-cover-use">Use this frame</button>
+    </div>
+  </div>
+</div>
 
 <div class="ed-login" id="ed-login" hidden>
   <form class="ed-login-card" id="ed-login-form">

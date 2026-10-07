@@ -5,6 +5,7 @@ const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const TOKEN_KEY = 'hg_editor_token';
 const PART_SIZE = 40 * 1024 * 1024;
 const MAX_PHOTO = 90 * 1024 * 1024;
+const LOAD_STAMP = Date.now();
 
 const $ = (sel) => document.querySelector(sel);
 const statusEl = $('#ed-status');
@@ -152,7 +153,7 @@ function removeButton(target) {
 
 function videoEntry({ slug, mods, title, file }) {
   const entry = el('div', ['gallery-entry', 'ed-entry', ...mods].join(' '));
-  entry._data = { slug, mods, file: file || null };
+  entry._data = { slug, mods, file: file || null, coverTime: null };
 
   const titleEl = el('p', 'video-title', title);
   makeEditable(titleEl, true);
@@ -174,8 +175,11 @@ function videoEntry({ slug, mods, title, file }) {
     img.addEventListener('load', () => {
       if (img.naturalHeight > img.naturalWidth) box.classList.add('portrait');
     });
-    img.src = `/assets/gallery/${slug}.jpg`;
-    box.append(img);
+    img.src = `/assets/gallery/${slug}.jpg?t=${LOAD_STAMP}`;
+    const coverBtn = el('button', 'ed-cover-btn', 'Set cover');
+    coverBtn.type = 'button';
+    coverBtn.addEventListener('click', (e) => { e.stopPropagation(); openCoverPicker(entry, img); });
+    box.append(img, coverBtn);
   }
   box.append(removeButton(entry));
   entry.append(titleEl, box);
@@ -225,7 +229,7 @@ function renderMedia(videoLines, stillLines) {
 
   const sortOpts = {
     animation: 180,
-    filter: '.ed-editable, .ed-remove',
+    filter: '.ed-editable, .ed-remove, .ed-cover-btn',
     preventOnFilter: false,
     onEnd: markDirty,
   };
@@ -262,6 +266,173 @@ $('#ed-add-photo').addEventListener('change', (e) => {
   markDirty();
   stillsEl.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
+
+const coverModal = $('#ed-cover');
+const coverVideo = $('#ed-cover-video');
+const coverHint = $('#ed-cover-hint');
+let coverTarget = null;
+
+function openCoverPicker(entry, img) {
+  coverTarget = { entry, img };
+  coverHint.textContent = 'Play or drag to the moment you want, then press "Use this frame".';
+  $('#ed-cover-use').disabled = false;
+  coverVideo.src = `/assets/gallery/${entry._data.slug}.mp4`;
+  coverModal.hidden = false;
+}
+
+function closeCoverPicker() {
+  coverModal.hidden = true;
+  coverVideo.pause();
+  coverVideo.removeAttribute('src');
+  coverVideo.load();
+  coverTarget = null;
+}
+
+coverVideo.addEventListener('error', () => {
+  if (!coverTarget) return;
+  coverHint.textContent = 'This video is still being processed. Try again in a few minutes.';
+  $('#ed-cover-use').disabled = true;
+});
+
+$('#ed-cover-cancel').addEventListener('click', closeCoverPicker);
+coverModal.addEventListener('click', (e) => { if (e.target === coverModal) closeCoverPicker(); });
+
+$('#ed-cover-use').addEventListener('click', () => {
+  if (!coverTarget || !coverVideo.duration) return;
+  coverVideo.pause();
+  const { entry, img } = coverTarget;
+  const seconds = Math.round(coverVideo.currentTime * 100) / 100;
+  entry._data.coverTime = seconds;
+
+  const preview = el('video', 'ed-preview');
+  preview.muted = true;
+  preview.playsInline = true;
+  preview.preload = 'metadata';
+  preview.src = `/assets/gallery/${entry._data.slug}.mp4#t=${seconds}`;
+  const box = img.parentElement;
+  box.querySelector('.ed-preview')?.remove();
+  img.hidden = true;
+  box.prepend(preview);
+  box.querySelector('.ed-badge')?.remove();
+  box.append(el('span', 'ed-badge', 'New cover'));
+
+  markDirty();
+  closeCoverPicker();
+});
+
+let styleCfg = { fonts: {}, targets: {} };
+let styles = {};
+let styleTarget = null;
+const liveStyles = document.createElement('style');
+document.head.append(liveStyles);
+const panel = $('#ed-panel');
+
+function stylesCss(map) {
+  return Object.entries(map).map(([key, s]) => {
+    const t = styleCfg.targets[key];
+    if (!t) return '';
+    const d = [];
+    if (s.font && styleCfg.fonts[s.font]) d.push(`font-family: '${s.font}', sans-serif`);
+    if (s.size) d.push(t.maxVw ? `font-size: min(${s.size}px, ${t.maxVw}vw)` : `font-size: ${s.size}px`);
+    if (s.color) d.push(`color: ${s.color}`);
+    return d.length ? `#ed-page ${t.selector} { ${d.join('; ')}; }` : '';
+  }).join('\n');
+}
+
+function applyStyles() {
+  liveStyles.textContent = stylesCss(styles);
+}
+
+function rgbToHex(rgb) {
+  const m = rgb.match(/\d+/g);
+  if (!m) return '#000000';
+  return '#' + m.slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('');
+}
+
+function syncPanel() {
+  const key = styleTarget;
+  const t = styleCfg.targets[key];
+  if (!t) return;
+  $('#ed-st-target').value = key;
+  document.querySelectorAll('.ed-picked').forEach((n) => n.classList.remove('ed-picked'));
+  const sample = document.querySelector(`#ed-page ${t.selector}`);
+  if (sample) sample.classList.add('ed-picked');
+  const s = styles[key] || {};
+  $('#ed-st-font').value = s.font || '';
+  const computed = sample ? getComputedStyle(sample) : null;
+  const size = s.size || (computed ? Math.round(parseFloat(computed.fontSize)) : 16);
+  $('#ed-st-size').value = size;
+  $('#ed-st-size-val').textContent = `${size}px`;
+  $('#ed-st-color').value = s.color || (computed ? rgbToHex(computed.color) : '#000000');
+}
+
+function updateStyle(change) {
+  const next = { ...(styles[styleTarget] || {}), ...change };
+  Object.keys(next).forEach((k) => { if (!next[k]) delete next[k]; });
+  if (Object.keys(next).length) styles[styleTarget] = next; else delete styles[styleTarget];
+  applyStyles();
+  markDirty();
+}
+
+function targetForElement(node) {
+  for (const [key, t] of Object.entries(styleCfg.targets)) {
+    const match = node.closest(t.selector);
+    if (match && match.closest('#ed-page')) return key;
+  }
+  return null;
+}
+
+async function initStylePanel() {
+  styleCfg = await (await fetch('/edit/styles.json', { cache: 'no-store' })).json();
+  const families = Object.entries(styleCfg.fonts)
+    .map(([name, weights]) => `family=${name.replace(/ /g, '+')}:wght@${weights}`).join('&');
+  const link = el('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+  document.head.append(link);
+
+  const targetSel = $('#ed-st-target');
+  Object.entries(styleCfg.targets).forEach(([key, t]) => {
+    const opt = el('option', null, t.label);
+    opt.value = key;
+    targetSel.append(opt);
+  });
+  const fontSel = $('#ed-st-font');
+  Object.keys(styleCfg.fonts).forEach((name) => {
+    const opt = el('option', null, name);
+    opt.value = name;
+    opt.style.fontFamily = `'${name}'`;
+    fontSel.append(opt);
+  });
+  styleTarget = Object.keys(styleCfg.targets)[0];
+}
+
+$('#ed-style-toggle').addEventListener('click', () => {
+  panel.hidden = !panel.hidden;
+  document.body.classList.toggle('ed-styling', !panel.hidden);
+  if (!panel.hidden) syncPanel();
+  else document.querySelectorAll('.ed-picked').forEach((n) => n.classList.remove('ed-picked'));
+});
+$('#ed-panel-close').addEventListener('click', () => $('#ed-style-toggle').click());
+$('#ed-st-target').addEventListener('change', (e) => { styleTarget = e.target.value; syncPanel(); });
+$('#ed-st-font').addEventListener('change', (e) => updateStyle({ font: e.target.value }));
+$('#ed-st-size').addEventListener('input', (e) => {
+  $('#ed-st-size-val').textContent = `${e.target.value}px`;
+  updateStyle({ size: Number(e.target.value) });
+});
+$('#ed-st-color').addEventListener('input', (e) => updateStyle({ color: e.target.value }));
+$('#ed-st-reset').addEventListener('click', () => {
+  delete styles[styleTarget];
+  applyStyles();
+  syncPanel();
+  markDirty();
+});
+
+document.addEventListener('click', (e) => {
+  if (panel.hidden || panel.contains(e.target)) return;
+  const key = targetForElement(e.target);
+  if (key) { styleTarget = key; syncPanel(); }
+}, true);
 
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -310,9 +481,10 @@ function collect() {
   const titles = {};
   const uploads = [];
   const deletions = [];
+  const covers = {};
 
   videosEl.querySelectorAll('.ed-entry').forEach((entry) => {
-    const { slug, mods, file } = entry._data;
+    const { slug, mods, file, coverTime } = entry._data;
     if (entry.classList.contains('ed-removed')) {
       if (!file) deletions.push(`assets/gallery/${slug}.mp4`, `assets/gallery/${slug}.jpg`);
       return;
@@ -320,6 +492,8 @@ function collect() {
     videoOrder.push([slug, ...mods].join(','));
     titles[slug] = entry.querySelector('.video-title').textContent.trim() || titleize(slug);
     if (file) uploads.push({ kind: 'video', slug, file });
+    const time = coverTime ?? (site.covers || {})[slug];
+    if (time != null) covers[slug] = time;
   });
 
   const stillOrder = [];
@@ -340,6 +514,8 @@ function collect() {
     tagline: $('#ed-tagline').textContent.trim(),
     about: lines($('#ed-about').innerText),
     titles,
+    covers,
+    styles: JSON.parse(JSON.stringify(styles)),
   };
 
   return { videoOrder, stillOrder, newSite, uploads, deletions };
@@ -417,7 +593,7 @@ saveBtn.addEventListener('click', async () => {
     site = newSite;
     videosEl.querySelectorAll('.ed-entry.ed-removed').forEach((n) => n.remove());
     stillsEl.querySelectorAll('.ed-still.ed-removed').forEach((n) => n.remove());
-    document.querySelectorAll('.ed-entry, .ed-still').forEach((n) => { n._data.file = null; });
+    document.querySelectorAll('.ed-entry, .ed-still').forEach((n) => { n._data.file = null; n._data.coverTime = null; });
     document.querySelectorAll('.ed-badge').forEach((n) => n.remove());
 
     dirty = false;
@@ -461,6 +637,9 @@ async function start() {
       readRepoText('content/site.json'),
     ]);
     site = siteTxt ? JSON.parse(siteTxt) : { roles: [], tagline: '', about: [], titles: {} };
+    await initStylePanel();
+    styles = JSON.parse(JSON.stringify(site.styles || {}));
+    applyStyles();
     renderText();
     renderMedia(lines(videosTxt), lines(stillsTxt));
     $('#ed-page').hidden = false;

@@ -1,0 +1,22 @@
+{
+  "fonts": {
+    "Jost": "300;400;500",
+    "Heebo": "300;400;500",
+    "Assistant": "300;400;600",
+    "Rubik": "300;400;500",
+    "Frank Ruhl Libre": "300;400;500",
+    "Secular One": "400",
+    "Cormorant Garamond": "300;400;500",
+    "Playfair Display": "400;500",
+    "Montserrat": "300;400;500",
+    "Italiana": "400"
+  },
+  "targets": {
+    "name":     { "label": "Name (HILA GALANT)", "selector": ".hero-text h1", "maxVw": 12 },
+    "roles":    { "label": "Roles",              "selector": ".hero-text .role" },
+    "tagline":  { "label": "Tagline",            "selector": ".hero-text .tagline" },
+    "sections": { "label": "Section titles",     "selector": ".section-title" },
+    "about":    { "label": "About text",         "selector": ".about-text" },
+    "titles":   { "label": "Video titles",       "selector": ".video-title" }
+  }
+}

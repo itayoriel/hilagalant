@@ -18,7 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('click', () => {
       if (!el.classList.contains('video-facade')) return;
       const src = el.dataset.src;
+      const thumb = el.querySelector('.v-thumb');
       const video = document.createElement('video');
+      if (thumb) video.poster = thumb.src;
       video.controls = true;
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
