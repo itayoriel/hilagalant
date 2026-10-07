@@ -1,0 +1,65 @@
+name: Process uploaded videos
+
+on:
+  push:
+    branches: ["upload-*"]
+
+concurrency:
+  group: site-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Join uploaded pieces
+        env:
+          UPLOAD_BRANCH: ${{ github.ref_name }}
+        run: |
+          git fetch origin "$UPLOAD_BRANCH"
+          src="origin/$UPLOAD_BRANCH"
+          mkdir -p assets/incoming/gallery
+          for dir in $(git ls-tree --name-only "$src" uploads/); do
+            name=$(basename "$dir")
+            out="assets/incoming/gallery/$name"
+            : > "$out"
+            for part in $(git ls-tree --name-only "$src" "$dir/" | sort); do
+              git cat-file blob "$src:$part" >> "$out"
+            done
+            echo "Joined $name ($(du -h "$out" | cut -f1))"
+          done
+
+      - name: Compress and add to site
+        run: python scripts/process_incoming.py
+
+      - name: Commit to main
+        run: |
+          git config user.name "hila-galant-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A index.html order content assets
+          if ! git diff --cached --quiet; then
+            git commit -m "Add uploaded videos"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Delete the temporary upload branch
+        if: success()
+        env:
+          UPLOAD_BRANCH: ${{ github.ref_name }}
+        run: git push origin --delete "$UPLOAD_BRANCH"

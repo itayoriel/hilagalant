@@ -3,8 +3,8 @@ const REPO = 'hilagalant';
 const BRANCH = 'main';
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const TOKEN_KEY = 'hg_editor_token';
-const MAX_UPLOAD = 95 * 1024 * 1024;
-const COMPRESS_OVER = 45 * 1024 * 1024;
+const PART_SIZE = 40 * 1024 * 1024;
+const MAX_PHOTO = 90 * 1024 * 1024;
 
 const $ = (sel) => document.querySelector(sel);
 const statusEl = $('#ed-status');
@@ -263,60 +263,6 @@ $('#ed-add-photo').addEventListener('change', (e) => {
   stillsEl.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
-let ffmpegPromise = null;
-
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = resolve;
-    s.onerror = () => reject(new Error(`Could not load ${src}`));
-    document.head.append(s);
-  });
-}
-
-function getFFmpeg() {
-  if (!ffmpegPromise) {
-    ffmpegPromise = (async () => {
-      await loadScript('/edit/vendor/ffmpeg.js');
-      const ff = new FFmpegWASM.FFmpeg();
-      await ff.load({
-        coreURL: new URL('/edit/vendor/ffmpeg-core.js', location.href).href,
-        wasmURL: new URL('/edit/vendor/ffmpeg-core.wasm', location.href).href,
-      });
-      return ff;
-    })();
-    ffmpegPromise.catch(() => { ffmpegPromise = null; });
-  }
-  return ffmpegPromise;
-}
-
-async function compressVideo(file, onProgress) {
-  const ff = await getFFmpeg();
-  const handler = ({ progress }) => onProgress(Math.min(1, Math.max(0, progress)));
-  ff.on('progress', handler);
-  try {
-    await ff.writeFile('in', new Uint8Array(await file.arrayBuffer()));
-    for (const crf of ['21', '27']) {
-      await ff.exec([
-        '-i', 'in',
-        '-vf', "scale='if(gt(iw,ih),min(1280,iw),-2)':'if(gt(iw,ih),-2,min(1280,ih))'",
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', crf, '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
-        'out.mp4',
-      ]);
-      const data = await ff.readFile('out.mp4');
-      await ff.deleteFile('out.mp4');
-      if (data.length <= MAX_UPLOAD || crf === '27') {
-        return new Blob([data.buffer], { type: 'video/mp4' });
-      }
-    }
-  } finally {
-    ff.off('progress', handler);
-    try { await ff.deleteFile('in'); } catch {}
-  }
-}
-
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -372,7 +318,7 @@ function collect() {
       return;
     }
     videoOrder.push([slug, ...mods].join(','));
-    titles[slug] = entry.querySelector('.video-title').innerText.trim() || titleize(slug);
+    titles[slug] = entry.querySelector('.video-title').textContent.trim() || titleize(slug);
     if (file) uploads.push({ kind: 'video', slug, file });
   });
 
@@ -387,11 +333,11 @@ function collect() {
     if (file) uploads.push({ kind: 'photo', name, file });
   });
 
-  const roles = [...document.querySelectorAll('#ed-roles .role')].map((p) => p.innerText.trim()).filter(Boolean);
+  const roles = [...document.querySelectorAll('#ed-roles .role')].map((p) => p.textContent.trim()).filter(Boolean);
   const newSite = {
     ...site,
     roles,
-    tagline: $('#ed-tagline').innerText.trim(),
+    tagline: $('#ed-tagline').textContent.trim(),
     about: lines($('#ed-about').innerText),
     titles,
   };
@@ -399,24 +345,47 @@ function collect() {
   return { videoOrder, stillOrder, newSite, uploads, deletions };
 }
 
-async function prepareUpload(item, index, total) {
-  const label = `${index + 1}/${total}`;
-  if (item.kind === 'video') {
-    let blob = item.file;
-    let fileExt = ext(item.file.name) || 'mp4';
-    if (blob.size > COMPRESS_OVER) {
-      setStatus(`Preparing video ${label} (this can take a few minutes)…`, 0);
-      blob = await compressVideo(item.file, (p) => setStatus(`Preparing video ${label} (this can take a few minutes)…`, p));
-      fileExt = 'mp4';
+// Pieces go to a throwaway upload-* branch so raw files never enter main's history.
+async function uploadVideos(videos, totalBytes) {
+  const parts = [];
+  let sent = 0;
+  for (let v = 0; v < videos.length; v++) {
+    const { slug, file } = videos[v];
+    const dir = `uploads/${slug}.${ext(file.name) || 'mp4'}`;
+    const count = Math.ceil(file.size / PART_SIZE);
+    for (let p = 0; p < count; p++) {
+      const chunk = file.slice(p * PART_SIZE, (p + 1) * PART_SIZE);
+      setStatus(`Uploading video ${v + 1} of ${videos.length}…`, sent / totalBytes);
+      parts.push({ path: `${dir}/part-${String(p).padStart(3, '0')}`, sha: await uploadBlob(chunk) });
+      sent += chunk.size;
     }
-    if (blob.size > MAX_UPLOAD) throw new Error(`"${item.file.name}" is still too large after compressing. Try a shorter clip.`);
-    setStatus(`Uploading ${label}…`, null);
-    return { path: `assets/incoming/gallery/${item.slug}.${fileExt}`, sha: await uploadBlob(blob) };
   }
-  if (item.file.size > MAX_UPLOAD) throw new Error(`"${item.file.name}" is too large.`);
-  setStatus(`Uploading ${label}…`, null);
-  const base = item.name.replace(/\.jpg$/, '');
-  return { path: `assets/incoming/stills/${base}.${ext(item.file.name) || 'jpg'}`, sha: await uploadBlob(item.file) };
+  setStatus('Sending videos for processing…', 1);
+  const ref = await gh(`/git/ref/heads/${BRANCH}`);
+  const tree = await gh('/git/trees', {
+    method: 'POST',
+    body: JSON.stringify({ tree: parts.map(({ path, sha }) => ({ path, mode: '100644', type: 'blob', sha })) }),
+  });
+  const commit = await gh('/git/commits', {
+    method: 'POST',
+    body: JSON.stringify({ message: 'Video upload from editor', tree: tree.sha, parents: [ref.object.sha] }),
+  });
+  await gh('/git/refs', {
+    method: 'POST',
+    body: JSON.stringify({ ref: `refs/heads/upload-${Date.now()}`, sha: commit.sha }),
+  });
+}
+
+async function uploadPhotos(photos) {
+  const entries = [];
+  for (let i = 0; i < photos.length; i++) {
+    const { name, file } = photos[i];
+    if (file.size > MAX_PHOTO) throw new Error(`"${file.name}" is too large for a photo (over 90MB).`);
+    setStatus(`Uploading photo ${i + 1} of ${photos.length}…`, i / photos.length);
+    const base = name.replace(/\.jpg$/, '');
+    entries.push({ path: `assets/incoming/stills/${base}.${ext(file.name) || 'jpg'}`, sha: await uploadBlob(file) });
+  }
+  return entries;
 }
 
 saveBtn.addEventListener('click', async () => {
@@ -426,11 +395,11 @@ saveBtn.addEventListener('click', async () => {
   document.body.classList.add('ed-saving');
   try {
     const { videoOrder, stillOrder, newSite, uploads, deletions } = collect();
+    const videos = uploads.filter((u) => u.kind === 'video');
+    const photos = uploads.filter((u) => u.kind === 'photo');
 
-    const blobEntries = [];
-    for (let i = 0; i < uploads.length; i++) {
-      blobEntries.push(await prepareUpload(uploads[i], i, uploads.length));
-    }
+    if (videos.length) await uploadVideos(videos, videos.reduce((n, v) => n + v.file.size, 0));
+    const blobEntries = await uploadPhotos(photos);
 
     setStatus('Saving…', null);
     const textFiles = {
@@ -448,7 +417,7 @@ saveBtn.addEventListener('click', async () => {
 
     dirty = false;
     setStatus(uploads.length
-      ? 'Saved ✓ New videos/photos will appear on the site in a few minutes'
+      ? 'Saved ✓ New videos/photos will appear on the site in a few minutes (you can close this page)'
       : 'Saved ✓ The site will update in about a minute');
   } catch (err) {
     console.error(err);
