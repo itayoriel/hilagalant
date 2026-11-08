@@ -18,17 +18,18 @@
     "nails": "Nails",
     "mantrot": "Mantrot",
     "shell": "Shell",
+    "sinai": "Sinai",
     "green": "Green",
     "color-grading": "Color Grading",
     "pilates": "Pilates",
     "icy-gold": "Icy Gold",
     "retreat": "Retreat",
     "pie": "Pie",
-    "my-room": "My Room",
-    "sinai": "Sinai"
+    "my-room": "My Room"
   },
   "covers": {
     "alma": 10.44,
+    "sinai": 46.33,
     "my-room": 17.77
   },
   "styles": {}
